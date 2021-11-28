@@ -1,10 +1,9 @@
+import json
 import random
 import time
 
 from redis_init import rd
 from word2vec import model
-
-count = 0
 
 
 # 모든 사용자 태그 유사도 측정
@@ -53,22 +52,24 @@ def get_matching_user(rank):
     first_user_socket_id = rd.get(first_user)
     second_user_socket_id = rd.get(second_user)
 
-    # matching set에 socket id 2개 넣기기
-    matchig_key = "matching" + str(get_matching_user.count)
-    get_matching_user.count += 1
-    rd.sadd(matchig_key, first_user_socket_id, second_user_socket_id)  # insert
+    # node server에 알려주기기
+    rd.publish("random_matching", json.dumps([first_user_socket_id, second_user_socket_id]))
 
     # 기존 유저에서 제외
     rd.delete(matching[0], matching[1])
     rd.delete("tag:" + matching[0], "tag:" + matching[1])
 
+    # # matching set에 socket id 2개 넣기기
+    # matchig_key = "matching:" + str(get_matching_user.count)
+    # get_matching_user.count += 1
+    # rd.sadd(matchig_key, first_user_socket_id, second_user_socket_id)  # insert
+
 
 if __name__ == "__main__":
-    get_matching_user.count = 0 # get_matching_user 내에 static variable
-    rd.publish("test", "hello")
+    get_matching_user.count = 0  # get_matching_user 내에 static variable
 
-    # while True:
-    #     all_user = get_all_user_similarity()  # redis에 user 1명 이하면 false 반환
-    #     if (all_user):
-    #         get_matching_user(all_user)  # matching user 2명
-    #     time.sleep(1)
+    while True:
+        all_user = get_all_user_similarity()  # redis에 user 2명 미만이면 false 반환
+        if all_user:
+            get_matching_user(all_user)  # matching user 2명
+        time.sleep(1)
