@@ -6,14 +6,14 @@ from redis_init import rd
 from word2vec import model
 
 
-# 모든 사용자 태그 유사도 측정
+# Estimate Tag Similarity of All Users
 def get_all_user_similarity():
     user_with_tag = {}  # user with tag dict
-    rank = []  # weight 계산된 list
+    rank = []  # weighted list
     user_keys = list(rd.keys("tag:user:*"))
 
     if (len(user_keys) < 2):
-        print("매칭 사용자 부족")
+        print("Not Enough Users")
         return False
 
     for key in user_keys:
@@ -29,7 +29,7 @@ def get_all_user_similarity():
     return rank
 
 
-# 사용자 2명 골라서 유사도 계산
+# Select Two Users and Calculate Tag Similarity
 def get_similarity(first_user_tags, second_user_tags):
     weight_sum = 0
     for first_user_tag in first_user_tags:
@@ -40,7 +40,7 @@ def get_similarity(first_user_tags, second_user_tags):
     return weight_sum
 
 
-# 가장 유사도 높은 사용자 2명 select && redis에 넣기
+# Select Most Similarity Two User And Insert in Redis
 def get_matching_user(rank):
     matching = max(rank, key=lambda weight: weight[2])  # (user1, user2, weight)
     print(matching)
@@ -48,28 +48,23 @@ def get_matching_user(rank):
     first_user = matching[0]
     second_user = matching[1]
 
-    # 사용자 2명의 socket id 찾기
+    # Find Sokcet ID of Two User
     first_user_socket_id = rd.get(first_user)
     second_user_socket_id = rd.get(second_user)
 
-    # node server에 알려주기기
+    # Notify Socket ID of Two User to Node Server
     rd.publish("random_matching", json.dumps([first_user_socket_id, second_user_socket_id]))
 
-    # 기존 유저에서 제외
+    # Exclude Existing User in Redis
     rd.delete(matching[0], matching[1])
     rd.delete("tag:" + matching[0], "tag:" + matching[1])
 
-    # # matching set에 socket id 2개 넣기기
-    # matchig_key = "matching:" + str(get_matching_user.count)
-    # get_matching_user.count += 1
-    # rd.sadd(matchig_key, first_user_socket_id, second_user_socket_id)  # insert
-
 
 if __name__ == "__main__":
-    get_matching_user.count = 0  # get_matching_user 내에 static variable
+    get_matching_user.count = 0  # static variable in get_matching_user
 
     while True:
-        all_user = get_all_user_similarity()  # redis에 user 2명 미만이면 false 반환
+        all_user = get_all_user_similarity()  # if user in redis is less than two, return false
         if all_user:
-            get_matching_user(all_user)  # matching user 2명
+            get_matching_user(all_user)  # matching two user
         time.sleep(1)
