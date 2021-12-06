@@ -13,7 +13,7 @@ def get_all_user_similarity():
     user_keys = list(rd.keys("tag:user:*"))
 
     if (len(user_keys) < 2):
-        print("Not Enough Users")
+        print("Not Enough Users", flush = True)
         return False
 
     for key in user_keys:
@@ -43,7 +43,7 @@ def get_similarity(first_user_tags, second_user_tags):
 # Select Most Similarity Two User And Insert in Redis
 def get_matching_user(rank):
     matching = max(rank, key=lambda weight: weight[2])  # (user1, user2, weight)
-    print(matching)
+    print(matching, flush = True)
 
     first_user = matching[0]
     second_user = matching[1]
